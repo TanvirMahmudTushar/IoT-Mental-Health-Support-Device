@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { useChat } from '@ai-sdk/react'
-import { DefaultChatTransport, type UIMessage } from 'ai'
+import { useChat, Chat as AiChat } from '@ai-sdk/react'
+import { type UIMessage } from 'ai'
 import { ChatMessage } from '@/components/chat-message'
 import { ChatInput } from '@/components/chat-input'
 import { TypingIndicator } from '@/components/typing-indicator'
@@ -98,9 +98,14 @@ export function ChatPageClient({ user, profile: initialProfile, initialChats, mo
   const [ttsEnabled, setTtsEnabled] = useState(false)
   const [isSpeaking, setIsSpeaking] = useState(false)
 
+  // Create Chat instance once — passing via `chat` prop bypasses all re-creation logic in useChat
+  const chatInstanceRef = useRef<InstanceType<typeof AiChat> | null>(null)
+  if (!chatInstanceRef.current) {
+    chatInstanceRef.current = new AiChat<UIMessage>({ messages: [] })
+  }
+
   const { messages, setMessages, status, sendMessage } = useChat({
-    id: currentChatId || undefined,
-    transport: new DefaultChatTransport({ api: '/api/chat' }),
+    chat: chatInstanceRef.current!,
   })
 
   const isLoading = status === 'streaming' || status === 'submitted'

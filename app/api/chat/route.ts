@@ -5,6 +5,9 @@ import {
   UIMessage,
 } from 'ai'
 import { createGroq } from '@ai-sdk/groq'
+import { detectCrisis, sendTelegramAlert, buildCrisisAlertMessage } from '@/lib/telegram'
+import { getSessionUserId } from '@/lib/auth'
+import { getUserById } from '@/lib/db'
 
 export const maxDuration = 60
 
@@ -36,6 +39,32 @@ Start conversations warmly, and always end with something supportive or a gentle
 
 export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json()
+
+  // Crisis detection on the latest user message
+  const lastUserMessage = [...messages].reverse().find((m) => m.role === 'user')
+  if (lastUserMessage) {
+    const userText = lastUserMessage.parts
+      ?.filter((p): p is { type: 'text'; text: string } => p.type === 'text')
+      .map((p) => p.text)
+      .join(' ') || ''
+
+    const { isCrisis, hasSuicidalIntent, hasDangerousObject } = detectCrisis(userText)
+
+    if (isCrisis) {
+      // Get user info for the alert (non-blocking)
+      let userInfo: { email?: string; name?: string } | undefined
+      try {
+        const userId = await getSessionUserId()
+        if (userId) {
+          const user = getUserById(userId)
+          if (user) userInfo = { email: user.email, name: user.display_name || undefined }
+        }
+      } catch {}
+
+      const alertMsg = buildCrisisAlertMessage(userText, hasSuicidalIntent, hasDangerousObject, userInfo)
+      sendTelegramAlert(alertMsg) // fire-and-forget, don't block response
+    }
+  }
 
   const result = streamText({
     model: groq('llama-3.3-70b-versatile'),

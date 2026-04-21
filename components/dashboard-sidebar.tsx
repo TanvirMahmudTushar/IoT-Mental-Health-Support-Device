@@ -15,6 +15,7 @@ import {
   Wind,
   Phone,
   BarChart3,
+  ShieldAlert,
   LogOut,
   ChevronLeft,
   ChevronRight,
@@ -41,6 +42,7 @@ const navItems = [
   { href: '/dashboard/breathing', icon: Wind, label: 'Breathing' },
   { href: '/dashboard/insights', icon: BarChart3, label: 'Insights' },
   { href: '/dashboard/resources', icon: Phone, label: 'Resources' },
+  { href: '/dashboard/safety', icon: ShieldAlert, label: 'Safety Monitor', danger: true },
 ]
 
 export function DashboardSidebar({ profile, onClose }: DashboardSidebarProps) {
@@ -80,7 +82,9 @@ export function DashboardSidebar({ profile, onClose }: DashboardSidebarProps) {
               size="icon"
               className={cn(
                 'text-sidebar-foreground hover:bg-sidebar-accent',
-                isActive(item.href) && 'bg-sidebar-accent text-primary'
+                isActive(item.href) && 'bg-sidebar-accent text-primary',
+                item.danger && !isActive(item.href) && 'text-red-400 hover:text-red-300 hover:bg-red-500/10',
+                item.danger && isActive(item.href) && 'bg-red-500/10 text-red-400',
               )}
             >
               <item.icon className="w-5 h-5" />
@@ -133,13 +137,20 @@ export function DashboardSidebar({ profile, onClose }: DashboardSidebarProps) {
               <div
                 className={cn(
                   'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-sm',
-                  isActive(item.href)
-                    ? 'bg-primary/10 text-primary font-medium'
-                    : 'text-sidebar-foreground hover:bg-sidebar-accent'
+                  item.danger
+                    ? isActive(item.href)
+                      ? 'bg-red-500/10 text-red-400 font-medium'
+                      : 'text-red-400 hover:bg-red-500/10 hover:text-red-300'
+                    : isActive(item.href)
+                      ? 'bg-primary/10 text-primary font-medium'
+                      : 'text-sidebar-foreground hover:bg-sidebar-accent'
                 )}
               >
-                <item.icon className={cn('w-5 h-5', isActive(item.href) && 'text-primary')} />
+                <item.icon className={cn('w-5 h-5', isActive(item.href) && !item.danger && 'text-primary')} />
                 {item.label}
+                {item.danger && (
+                  <span className="ml-auto text-[9px] font-bold bg-red-500/20 text-red-400 border border-red-500/30 rounded px-1 py-0.5">LIVE</span>
+                )}
               </div>
             </Link>
           ))}
